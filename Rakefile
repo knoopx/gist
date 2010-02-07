@@ -6,7 +6,6 @@ begin
   require 'jeweler'
   Jeweler::Tasks.new do |gem|
     gem.name = "knoopx-gist"
-    gem.version = Gist::VERSION
     gem.summary = "Command-line interface for http://gist.github.com"
     gem.description = "Command-line interface for http://gist.github.com"
     gem.email = "knoopx@gmail.com"
