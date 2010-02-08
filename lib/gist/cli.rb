@@ -34,16 +34,18 @@ class Gist::CLI
     end
 
     command :list do |c|
-      c.syntax = 'list [--private|--public]'
+      c.syntax = 'list [--all]'
       c.description = 'Lists gists'
       c.example "List public gists from knoopx", 'list --user knoopx'
-      c.option '--private', 'Shows only private gists'
-      c.option '--public', 'Shows only public gists'
+      c.option '--all', 'Lists all gists including private ones. User and token should be specified'
       c.when_called do |args, options|
         require_username
         opts = {}
-        opts[:login] = @user if @user and not options.private
-        opts[:token] = @token if @token and not options.private
+        if options.all
+          require_token
+          opts[:login] = @user
+          opts[:token] = @token
+        end
         puts gist_table(Gist::API.list_gists(@user, opts))
       end
     end
@@ -86,11 +88,15 @@ class Gist::CLI
   end
 
   def gist_table (gists)
-    table do |t|
-      t.headings = "Id", "Description", "Date", "Privacity", "URL"
-      gists.each do |gist|
-        t << [gist[:repo], gist[:description], gist[:created_at], gist[:public] ? "Public" : "Private", Gist::API.gist_url(gist[:repo])]
+    if gists.any?
+      table do |t|
+        t.headings = "Id", "Description", "Date", "Privacity", "URL"
+        gists.each do |gist|
+          t << [gist[:repo], gist[:description], gist[:created_at], gist[:public] ? "Public" : "Private", Gist::API.gist_url(gist[:repo])]
+        end
       end
+    else
+      "No gists to list."
     end
   end
 end

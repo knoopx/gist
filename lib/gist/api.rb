@@ -1,4 +1,5 @@
 require 'httparty'
+require 'hpricot'
 
 class Gist::API
   include HTTParty
@@ -30,6 +31,21 @@ class Gist::API
   end
 
   def self.list_gists(username, options)
-    self.get("/gists/#{username}", :query => options)["gists"]
+    if options.include?(:login) and options.include?(:token)
+      doc = Hpricot(self.get("http://gist.github.com/mine", :query => options, :format => :html))
+    else
+      doc = Hpricot(self.get("http://gist.github.com/#{username}", :query => options, :format => :html))
+    end
+    
+    gists = []
+    doc.search('div#files div.file').each do |gist|
+      gists << {
+              :description => gist.search("div.info span").last.inner_text,
+              :created_at => gist.at("div.date abbr").inner_text,
+              :public => gist.attributes['class'].split(/\s+/).include?("public"),
+              :repo => gist.at("div.info a").attributes['href'].delete("/")
+      }
+    end
+    gists
   end
 end

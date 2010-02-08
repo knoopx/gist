@@ -14,6 +14,7 @@ begin
     gem.add_dependency('commander', '~> 4.0.2')
     gem.add_dependency('terminal-table', '~> 1.4.2')
     gem.add_dependency('httparty', '~> 0.5.2')
+    gem.add_dependency('hpricot', '~> 0.8.2')
   end
   Jeweler::GemcutterTasks.new
 rescue LoadError
