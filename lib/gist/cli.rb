@@ -33,6 +33,17 @@ class Gist::CLI
       end
     end
 
+    command :delete do |c|
+      c.syntax = 'delete ID'
+      c.description = 'Deletes the specified gist'
+      c.when_called do |args, options|
+        require_username
+        require_token
+        raise "No ID specified" unless args.any?
+        Gist::API.delete_gist(args.first, { :login => @user, :token => @token })
+      end
+    end
+
     command :list do |c|
       c.syntax = 'list [--all]'
       c.description = 'Lists gists'
@@ -72,6 +83,7 @@ class Gist::CLI
       c.syntax = 'print ID'
       c.description = 'Prints the contents of the specified gist'
       c.when_called do |args, options|
+        raise "No ID specified" unless args.any?
         puts Gist::API.get_gist(args.first)
       end
     end
@@ -92,7 +104,7 @@ class Gist::CLI
       table do |t|
         t.headings = "Id", "Description", "Date", "Privacity", "URL"
         gists.each do |gist|
-          t << [gist[:repo], gist[:description], gist[:created_at], gist[:public] ? "Public" : "Private", Gist::API.gist_url(gist[:repo])]
+          t << [gist.id, gist.description, gist.created_at, gist.privacity, Gist::API::gist_url(gist.id)]
         end
       end
     else

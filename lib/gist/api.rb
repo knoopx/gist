@@ -1,5 +1,22 @@
 require 'httparty'
-require 'hpricot'
+require 'nokogiri'
+require 'gist/scraper'
+require 'gist/scraper/gist.rb'
+require 'gist/scraper/gist_collection.rb'
+
+class Gist::Gist
+  attr_reader :id
+  attr_reader :description
+  attr_reader :created_at
+  attr_reader :privacity
+
+  def initialize(id, description, created_at, public = true)
+    @id = id
+    @description = description
+    @created_at = created_at
+    @privacity = public ? "Public" : "Private"
+  end
+end
 
 class Gist::API
   include HTTParty
@@ -23,29 +40,25 @@ class Gist::API
     files.each do |filename|
       options[:files][filename] = File.read(filename)
     end
-    self.post("/new", :query => options)["gists"]
+    gist = self.post("/new", :query => options)["gists"].first
+    [Gist::Gist.new(gist[:repo], gist[:description], gist[:created_at], gist[:public])]
   end
 
   def self.get_gist(id)
     self.get(self.gist_url(id, :text))
   end
+  
+  def self.delete_gist(id, options)
+    options.merge!({ :_method => :delete })
+    self.post("http://gist.github.com/delete/#{id}", :query => options, :format => :html)
+  end
 
-  def self.list_gists(username, options)
+  def self.list_gists(user, options)
     if options.include?(:login) and options.include?(:token)
-      doc = Hpricot(self.get("http://gist.github.com/mine", :query => options, :format => :html))
+      url = "http://gist.github.com/mine"
     else
-      doc = Hpricot(self.get("http://gist.github.com/#{username}", :query => options, :format => :html))
+      url = "http://gist.github.com/#{user}"
     end
-    
-    gists = []
-    doc.search('div#files div.file').each do |gist|
-      gists << {
-              :description => gist.search("div.info span").last.inner_text,
-              :created_at => gist.at("div.date abbr").inner_text,
-              :public => gist.attributes['class'].split(/\s+/).include?("public"),
-              :repo => gist.at("div.info a").attributes['href'].delete("/")
-      }
-    end
-    gists
+    Gist::Scraper::GistCollection.parse(Nokogiri(self.get(url, :query => options, :format => :html))).gists
   end
 end
